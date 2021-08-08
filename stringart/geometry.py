@@ -36,10 +36,6 @@ class Circle(Shape):
         x = [ self.diameter*math.cos(t*spacing) for t in steps ]
         y = [ self.diameter*math.sin(t*spacing) for t in steps ]
 
-        print(x)
-        print(y)
-        print(spacing)
-
         self.nails = list(zip(x,y))
 
 

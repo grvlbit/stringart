@@ -9,26 +9,52 @@ Some more information will follow
 import os
 import math
 import random
+import copy
 import numpy as np
 
-from PIL import Image
+from PIL import Image, ImageOps
+
+#from stringart.geometry import Circle 
+
 
 class StringArtGenerator:
     def __init__(self):
         self.iterations = 1000
-        self.shape = None
+        self.shape = 'circle'
         self.data = None
+        self.residual = None
         self.seed = 0
+        self.nails = 100
         self.nodes = []
 
-    def set_iterations(self, n):
-        self.iterations = n
+    def set_nails(self, nails):
+        self.nails = nails
+        self.set_nodes_circle()
+
+    def set_iterations(self, iterations):
+        self.iterations = iterations
+
+    def set_nodes_circle(self):
+        """Set's nails evenly along a circle of given diameter"""
+        spacing = (2*math.pi)/self.nails
+
+        steps = range(self.nails)
+
+        radius = self.get_radius()
+
+        x = [ radius + radius*math.cos(t*spacing) for t in steps ]
+        y = [ radius + radius*math.sin(t*spacing) for t in steps ]
+
+        self.nodes = list(zip(x,y))
+
+    def get_radius(self):
+        return 0.5*np.amax(np.shape(self.data))
 
     def load_image(self, path):
-        img= Image.open("Sample.png")
+        img= Image.open(path)
+        img = ImageOps.grayscale(img)
+        img = ImageOps.grayscale(img)
         np_img = np.array(img)
-              
-        print(np_img.shape)
         self.data = np_img 
 
     def preprocess(self):
@@ -37,36 +63,53 @@ class StringArtGenerator:
         # apply some filters maybe?
 
     def generate(self):
-
-        node_start = self.seed
-        for i in range(iterations):
+ 
+        delta = 0.0
+        pattern = []
+        node = self.nodes[self.seed]
+        datacopy = copy.deepcopy(self.data)
+        for i in range(self.iterations):
             #calculate straight line to all other nodes and calculate
             #'darkness' from start node
 
             #choose max darkness path 
-            darkest_node, darkest_path = self.choose_darkest_path()
+            darkest_node, darkest_path = self.choose_darkest_path(node)
+
+            #add chosen node to pattern
+            pattern.append(darkest_node)
 
             #substract chosen path from image
             self.data = self.data - self.data*darkest_path
 
+            if (np.sum(self.data) == 0.0 or np.sum(self.data)-delta == 0.0):
+                break
+
+            #store current residual as delta for next iteration
+            delta = np.sum(self.data)
+
             #continue from destination node as new start
-            node_start = darkest_node
-        return None
+            node = darkest_node
 
-    def choose_darkest_path(self):
-        max_darkness=0.0 
+        self.residual = copy.deepcopy(self.data)
+        self.data = datacopy
+        
+        return pattern
+
+    def choose_darkest_path(self, node_start):
+        max_darkness=-1.0 
         for node in self.nodes:
-            path=self.bresenham_path()
+            path=self.bresenham_path(node_start, node)
 
-            darkness = np.sum(self.data(np.where(path)))
+            darkness = np.sum(self.data * path)
 
             if darkness > max_darkness:
                 darkest_path = path
                 darkest_node = node
+                max_darkness = darkness
 
         return darkest_node, darkest_path
 
-    def bresenham_path(self,start, end):
+    def bresenham_path(self, start, end):
      """Bresenham's Line Algorithm
      Produces an numpy array 
   
@@ -74,11 +117,20 @@ class StringArtGenerator:
      # Setup initial conditions
      x1, y1 = start
      x2, y2 = end
+
+     x1 = max(0,min(round(x1),self.data.shape[0]-1))
+     y1 = max(0,min(round(y1),self.data.shape[1]-1))
+     x2 = max(0,min(round(x2),self.data.shape[0]-1))
+     y2 = max(0,min(round(y2),self.data.shape[1]-1))
+
      dx = x2 - x1
      dy = y2 - y1
 
 	 # Prepare output array
      path = np.zeros(np.shape(self.data))
+
+     if (start == end):
+         return path
   
      # Determine how steep the line is
      is_steep = abs(dy) > abs(dx)
@@ -106,8 +158,10 @@ class StringArtGenerator:
      # Iterate over bounding box generating points between start and end
      y = y1
      for x in range(x1, x2 + 1):
-         coord = (y, x) if is_steep else (x, y)
-         #path(coord) = 1.0 
+         if is_steep:
+             path[y,x] = 1.0
+         else:
+             path[x,y] = 1.0
          error -= abs(dy)
          if error < 0:
              y += ystep
