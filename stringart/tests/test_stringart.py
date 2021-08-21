@@ -46,7 +46,7 @@ def test_stringart_get_radius():
 def test_stringart_load_image():
     generator = StringArtGenerator()
     generator.load_image("tests/Sample_100x100.jpg")
-    assert np.shape(generator.data) == (100,100,3) ,"test failed"
+    assert np.shape(generator.data) == (3,100,100) ,"test failed"
 
 def test_stringart_bresenham_path():
     generator = StringArtGenerator()
@@ -104,14 +104,14 @@ def test_stringart_choose_darkest_path():
 
 def test_stringart_generate():
     generator = StringArtGenerator()
-    x = np.zeros((9,9,3))
-    x[0,:,:] = 1.0
-    x[8,:,:] = 1.0
-    x[:,0,:] = 1.0
-    x[:,8,:] = 1.0
-    x = rotate(x, angle=45, order=0)
-    generator.data = x[1:-1,1:-1,:]
-    generator.set_nails(4)
+    generator.load_image("tests/Sample_Star.jpg")
+    generator.preprocess()
+    generator.set_nails(10) 
+    generator.set_iterations(4)
     pattern = generator.generate()
-    assert pattern == generator.nodes[::-1] ,"test failed"
+    baseline = [(0.0, 268.00000000000006),
+                (536.0, 268.0),
+                (0.0, 268.00000000000006),
+                (484.8165544924859, 425.5264476143828)] 
+    assert pattern == baseline ,"test failed"
 

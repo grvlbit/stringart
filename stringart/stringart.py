@@ -12,7 +12,7 @@ import random
 import copy
 import numpy as np
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 
 #from stringart.geometry import Circle 
 
@@ -21,11 +21,15 @@ class StringArtGenerator:
     def __init__(self):
         self.iterations = 1000
         self.shape = 'circle'
+        self.image = None
         self.data = None
         self.residual = None
         self.seed = 0
         self.nails = 100
         self.nodes = []
+
+    def set_seed(self, seed):
+        self.seed = seed
 
     def set_nails(self, nails):
         self.nails = nails
@@ -52,15 +56,18 @@ class StringArtGenerator:
 
     def load_image(self, path):
         img= Image.open(path)
-        img = ImageOps.grayscale(img)
-        img = ImageOps.grayscale(img)
-        np_img = np.array(img)
-        self.data = np_img 
+        self.image = img
+        np_img = np.array(self.image)
+        self.data = np.flipud(np_img).transpose()
 
     def preprocess(self):
         # Convert image to grayscale
-        self.data = ImageOps.grayscale(self.data)
-        # apply some filters maybe?
+        self.image = ImageOps.grayscale(self.image)
+        self.image = ImageOps.invert(self.image)
+        self.image = self.image.filter(ImageFilter.EDGE_ENHANCE_MORE)
+        self.image = ImageEnhance.Contrast(self.image).enhance(1)
+        np_img = np.array(self.image)
+        self.data = np.flipud(np_img).transpose()
 
     def generate(self):
  
@@ -79,7 +86,7 @@ class StringArtGenerator:
             pattern.append(darkest_node)
 
             #substract chosen path from image
-            self.data = self.data - self.data*darkest_path
+            self.data = self.data - 20*darkest_path
 
             if (np.sum(self.data) == 0.0 or np.sum(self.data)-delta == 0.0):
                 break
