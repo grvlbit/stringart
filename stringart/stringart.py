@@ -6,15 +6,11 @@
 Some more information will follow
 """
 
-import os
 import math
-import random
 import copy
 import numpy as np
 
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
-
-#from stringart.geometry import Circle 
 
 
 class StringArtGenerator:
@@ -46,16 +42,16 @@ class StringArtGenerator:
 
         radius = self.get_radius()
 
-        x = [ radius + radius*math.cos(t*spacing) for t in steps ]
-        y = [ radius + radius*math.sin(t*spacing) for t in steps ]
+        x = [radius + radius*math.cos(t*spacing) for t in steps]
+        y = [radius + radius*math.sin(t*spacing) for t in steps]
 
-        self.nodes = list(zip(x,y))
+        self.nodes = list(zip(x, y))
 
     def get_radius(self):
         return 0.5*np.amax(np.shape(self.data))
 
     def load_image(self, path):
-        img= Image.open(path)
+        img = Image.open(path)
         self.image = img
         np_img = np.array(self.image)
         self.data = np.flipud(np_img).transpose()
@@ -70,42 +66,42 @@ class StringArtGenerator:
         self.data = np.flipud(np_img).transpose()
 
     def generate(self):
- 
+
         delta = 0.0
         pattern = []
         node = self.nodes[self.seed]
         datacopy = copy.deepcopy(self.data)
         for i in range(self.iterations):
-            #calculate straight line to all other nodes and calculate
-            #'darkness' from start node
+            # calculate straight line to all other nodes and calculate
+            # 'darkness' from start node
 
-            #choose max darkness path 
+            # choose max darkness path
             darkest_node, darkest_path = self.choose_darkest_path(node)
 
-            #add chosen node to pattern
+            # add chosen node to pattern
             pattern.append(darkest_node)
 
-            #substract chosen path from image
+            # substract chosen path from image
             self.data = self.data - 20*darkest_path
 
             if (np.sum(self.data) == 0.0 or np.sum(self.data)-delta == 0.0):
                 break
 
-            #store current residual as delta for next iteration
+            # store current residual as delta for next iteration
             delta = np.sum(self.data)
 
-            #continue from destination node as new start
+            # continue from destination node as new start
             node = darkest_node
 
         self.residual = copy.deepcopy(self.data)
         self.data = datacopy
-        
+
         return pattern
 
     def choose_darkest_path(self, node_start):
-        max_darkness=-1.0 
+        max_darkness = -1.0
         for node in self.nodes:
-            path=self.bresenham_path(node_start, node)
+            path = self.bresenham_path(node_start, node)
 
             darkness = np.sum(self.data * path)
 
@@ -117,64 +113,59 @@ class StringArtGenerator:
         return darkest_node, darkest_path
 
     def bresenham_path(self, start, end):
-     """Bresenham's Line Algorithm
-     Produces an numpy array 
-  
-     """
-     # Setup initial conditions
-     x1, y1 = start
-     x2, y2 = end
+        """Bresenham's Line Algorithm
+        Produces an numpy array
 
-     x1 = max(0,min(round(x1),self.data.shape[0]-1))
-     y1 = max(0,min(round(y1),self.data.shape[1]-1))
-     x2 = max(0,min(round(x2),self.data.shape[0]-1))
-     y2 = max(0,min(round(y2),self.data.shape[1]-1))
+        """
+        # Setup initial conditions
+        x1, y1 = start
+        x2, y2 = end
 
-     dx = x2 - x1
-     dy = y2 - y1
+        x1 = max(0, min(round(x1), self.data.shape[0]-1))
+        y1 = max(0, min(round(y1), self.data.shape[1]-1))
+        x2 = max(0, min(round(x2), self.data.shape[0]-1))
+        y2 = max(0, min(round(y2), self.data.shape[1]-1))
 
-	 # Prepare output array
-     path = np.zeros(np.shape(self.data))
+        dx = x2 - x1
+        dy = y2 - y1
 
-     if (start == end):
-         return path
-  
-     # Determine how steep the line is
-     is_steep = abs(dy) > abs(dx)
-  
-     # Rotate line
-     if is_steep:
-         x1, y1 = y1, x1
-         x2, y2 = y2, x2
-  
-     # Swap start and end points if necessary and store swap state
-     swapped = False
-     if x1 > x2:
-         x1, x2 = x2, x1
-         y1, y2 = y2, y1
-         swapped = True
-  
-     # Recalculate differentials
-     dx = x2 - x1
-     dy = y2 - y1
-  
-     # Calculate error
-     error = int(dx / 2.0)
-     ystep = 1 if y1 < y2 else -1
-  
-     # Iterate over bounding box generating points between start and end
-     y = y1
-     for x in range(x1, x2 + 1):
-         if is_steep:
-             path[y,x] = 1.0
-         else:
-             path[x,y] = 1.0
-         error -= abs(dy)
-         if error < 0:
-             y += ystep
-             error += dx
-  
-     return path 
+        # Prepare output array
+        path = np.zeros(np.shape(self.data))
 
+        if (start == end):
+            return path
 
+        # Determine how steep the line is
+        is_steep = abs(dy) > abs(dx)
 
+        # Rotate line
+        if is_steep:
+            x1, y1 = y1, x1
+            x2, y2 = y2, x2
+
+        # Swap start and end points if necessary and store swap state
+        if x1 > x2:
+            x1, x2 = x2, x1
+            y1, y2 = y2, y1
+
+        # Recalculate differentials
+        dx = x2 - x1
+        dy = y2 - y1
+
+        # Calculate error
+        error = int(dx / 2.0)
+        ystep = 1 if y1 < y2 else -1
+
+        # Iterate over bounding box generating points between start and end
+        y = y1
+        for x in range(x1, x2 + 1):
+            if is_steep:
+                path[y, x] = 1.0
+            else:
+                path[x, y] = 1.0
+            error -= abs(dy)
+            if error < 0:
+                y += ystep
+                error += dx
+
+        return path
