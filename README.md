@@ -2,7 +2,7 @@
 
 string-art is an algorithm to construct string-art pictures.
 
-![Mona Lisa stringart](stringart/demo/results_ml.jpg" "Mona Lisa stringart")
+![Mona Lisa stringart](stringart/demo/result_ml.png "Mona Lisa stringart")
 
 This project has been inspired by the magnificant works of [Petros
 Vrellis](http://artof01.com/vrellis/works/knit.html).
