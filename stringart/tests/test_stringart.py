@@ -31,6 +31,19 @@ def test_stringart_set_nails():
              (d+d*math.cos(3.0*math.pi/2.0), d+d*math.sin(3.0*math.pi/2.0))]
     assert generator.nodes == nodes, "test failed"
 
+def test_stringart_set_nails_2():
+    generator = StringArtGenerator()
+    generator.load_image("tests/Sample_60x40.jpg")
+    generator.set_shape('rectangle')
+    generator.set_nails(6)
+    nodes = [(0.0, 0),
+             (33.333333333333336, 0),
+             (60, 6.666666666666671),
+             (60.0, 40),
+             (26.666666666666657, 40),
+             (0, 33.333333333333314)]
+    assert generator.nodes == nodes, "test failed"
+
 
 def test_stringart_set_iterations():
     n = 1000
@@ -56,32 +69,31 @@ def test_stringart_load_image():
 def test_stringart_bresenham_path():
     generator = StringArtGenerator()
     # test diagonal 1
-    path = np.diagflat(np.ones([4, 1]))
-    generator.data = path
+    data = np.diagflat(np.ones([4, 1]))
+    generator.data = data
+    path = [[0, 0], [1, 1], [2, 2], [3, 3]]
     start = (0, 0)
     end = (3, 3)
     result = generator.bresenham_path(start, end)
-    assert (result == path).all(), "test failed"
+    assert (result == path), "test failed"
     # test diagonal 2
-    path = np.flipud(np.diagflat(np.ones([4, 1])))
+    path = [[0, 3], [1, 2], [2, 1], [3, 0]]
     start = (0, 3)
     end = (3, 0)
     result = generator.bresenham_path(start, end)
-    assert (result == path).all(), "test failed"
+    assert (result == path), "test failed"
     # test vertical
-    path = np.zeros((4, 4))
-    path[2, :] = 1.0
+    path = [[2, 0], [2, 1], [2, 2], [2, 3]]
     start = (2, 0)
     end = (2, 3)
     result = generator.bresenham_path(start, end)
-    assert (result == path).all(), "test failed"
+    assert (result == path), "test failed"
     # test horizontal
-    path = np.zeros((4, 4))
-    path[:, 2] = 1.0
+    path = [[0, 2], [1, 2], [2, 2], [3, 2]]
     start = (0, 2)
     end = (3, 2)
     result = generator.bresenham_path(start, end)
-    assert (result == path).all(), "test failed"
+    assert (result == path), "test failed"
 
 
 def test_stringart_choose_darkest_path():
@@ -89,24 +101,27 @@ def test_stringart_choose_darkest_path():
     generator.data = np.zeros((100, 100, 3))
     generator.data[:, 50, :] = 1.0
     generator.set_nails(4)
-    darkest_node, darkest_path = generator.choose_darkest_path(generator.nodes[0])
+    generator.calculate_paths()
+    darkest_nail, darkest_path = generator.choose_darkest_path(0)
     assert np.sum(generator.data * darkest_path) == 300.0, "test failed"
-    assert darkest_node == generator.nodes[2], "test failed"
+    assert generator.nodes[darkest_nail] == generator.nodes[2], "test failed"
     generator.data = np.zeros((100, 100, 3))
     generator.data[50, :, :] = 1.0
-    darkest_node, darkest_path = generator.choose_darkest_path(generator.nodes[0])
+    darkest_nail, darkest_path = generator.choose_darkest_path(0)
     assert np.sum(generator.data * darkest_path) == 3.0, "test failed"
-    assert darkest_node == generator.nodes[1], "test failed"
+    assert generator.nodes[darkest_nail] == generator.nodes[1], "test failed"
     x = np.zeros((9, 9, 3))
     x[0, :, :] = 1.0
     x[8, :, :] = 1.0
     x[:, 0, :] = 1.0
     x[:, 8, :] = 1.0
     x = rotate(x, angle=45, order=0)
+    generator = StringArtGenerator()
     generator.data = x[1:-1, 1:-1, :]
     generator.set_nails(4)
-    darkest_node, darkest_path = generator.choose_darkest_path(generator.nodes[0])
-    assert darkest_node == generator.nodes[3], "test failed"
+    generator.calculate_paths()
+    darkest_nail, darkest_path = generator.choose_darkest_path(0)
+    assert generator.nodes[darkest_nail] == generator.nodes[3], "test failed"
 
 
 def test_stringart_generate():
