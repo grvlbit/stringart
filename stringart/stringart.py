@@ -121,8 +121,9 @@ class StringArtGenerator:
 
             # substract chosen path from image
             self.data = self.data - self.weight*darkest_path
+            self.data[self.data < 0.0] = 0.0
 
-            if (np.sum(self.data) <= 0.0 or np.sum(self.data)-delta == 0.0):
+            if (np.sum(self.data) <= 0.0):
                 print("Stopping iterations. No more data or residual unchanged.")
                 break
 
