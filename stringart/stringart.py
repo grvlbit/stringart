@@ -9,6 +9,7 @@ Some more information will follow
 import math
 import copy
 import numpy as np
+from tqdm import tqdm
 
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 
@@ -154,7 +155,7 @@ class StringArtGenerator:
         return darkest_nail, darkest_path
 
     def calculate_paths(self):
-        for nail, anode in enumerate(self.nodes):
+        for nail, anode in tqdm(enumerate(self.nodes), total=len(self.nodes), desc='Generating pattern'):
             self.paths.append([])
             for node in self.nodes:
                 path = self.bresenham_path(anode, node)
