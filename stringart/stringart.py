@@ -105,17 +105,18 @@ class StringArtGenerator:
         self.data = np.flipud(np_img).transpose()
 
     def generate(self):
-        self.calculate_paths()
+        # self.calculate_paths()
         delta = 0.0
         pattern = []
         nail = self.seed
         datacopy = copy.deepcopy(self.data)
-        for i in range(self.iterations):
+        for i in tqdm(range(self.iterations), total=self.iterations, desc='Generating pattern'):
             # calculate straight line to all other nodes and calculate
             # 'darkness' from start node
 
             # choose max darkness path
-            darkest_nail, darkest_path = self.choose_darkest_path(nail)
+            # darkest_nail, darkest_path = self.choose_darkest_path(nail)
+            darkest_nail, darkest_path = self.find_darkest_path(nail)
 
             # add chosen node to pattern
             pattern.append(self.nodes[darkest_nail])
@@ -139,27 +140,47 @@ class StringArtGenerator:
 
         return pattern
 
-    def choose_darkest_path(self, nail):
+    def calculate_darkness(self, path):
+        rows = [i[0] for i in path]
+        cols = [i[1] for i in path]
+        darkness = float(np.sum(self.data[rows, cols]))
+        return darkness
+
+    def find_darkest_path(self, nail_in):
+        start = self.nodes[nail_in]
         max_darkness = -1.0
-        for index, rowcol in enumerate(self.paths[nail]):
-            rows = [i[0] for i in rowcol]
-            cols = [i[1] for i in rowcol]
-            darkness = float(np.sum(self.data[rows, cols]))
-
+        for index, end in enumerate(self.nodes):
+            path = self.bresenham_path(start, end)
+            darkness = self.calculate_darkness(path)
             if darkness > max_darkness:
-                darkest_path = np.zeros(np.shape(self.data))
-                darkest_path[rows,cols] = 1.0
                 darkest_nail = index
+                darkest_path = np.zeros(np.shape(self.data))
+                rows = [i[0] for i in path]
+                cols = [i[1] for i in path]
+                darkest_path[rows, cols] = 1.0
                 max_darkness = darkness
-
         return darkest_nail, darkest_path
 
-    def calculate_paths(self):
-        for nail, anode in tqdm(enumerate(self.nodes), total=len(self.nodes), desc='Generating pattern'):
-            self.paths.append([])
-            for node in self.nodes:
-                path = self.bresenham_path(anode, node)
-                self.paths[nail].append(path)
+    # def choose_darkest_path(self, nail):
+    #     max_darkness = -1.0
+    #     for index, rowcol in enumerate(self.paths[nail]):
+    #         rows = [i[0] for i in rowcol]
+    #         cols = [i[1] for i in rowcol]
+    #         darkness = float(np.sum(self.data[rows, cols]))
+
+    #         if darkness > max_darkness:
+    #             darkest_path = np.zeros(np.shape(self.data))
+    #             darkest_path[rows,cols] = 1.0
+    #             darkest_nail = index
+    #             max_darkness = darkness
+    #     return darkest_nail, darkest_path
+
+    # def calculate_paths(self):
+    #     for nail, anode in tqdm(enumerate(self.nodes), total=len(self.nodes), desc='Calculate paths'):
+    #         self.paths.append([])
+    #         for node in self.nodes:
+    #             path = self.bresenham_path(anode, node)
+    #             self.paths[nail].append(path)
 
     def bresenham_path(self, start, end):
         """Bresenham's Line Algorithm
