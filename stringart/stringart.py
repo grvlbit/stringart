@@ -36,10 +36,12 @@ class StringArtGenerator:
     def set_shape(self, shape):
         self.shape = shape
 
-    def set_nails(self, nails):
+    def set_nails(self, nails, dx=1):
         self.nails = nails
         if self.shape == 'circle':
             self.set_nodes_circle()
+        elif self.shape == 'two_circles':
+            self.set_nodes_two_circles(dx)
         elif self.shape == 'rectangle':
             self.set_nodes_rectangle()
 
@@ -88,6 +90,27 @@ class StringArtGenerator:
 
     def get_radius(self):
         return 0.5*np.amax(np.shape(self.data))
+
+    def set_nodes_two_circles(self, dx):
+        """Set's nails evenly along two circles of given diameter"""
+        spacing = (2*math.pi)/self.nails
+
+        steps = range(self.nails)
+
+        radius1 = self.get_radius() + dx
+        radius2 = self.get_radius() - dx
+
+        x = []
+        y = []
+        for i in steps:
+            if i % 2 == 0:
+                x.append(radius1 + radius1*math.cos(i*spacing))
+                y.append(radius1 + radius1*math.sin(i*spacing))
+            else:
+                x.append(radius2 + radius2*math.cos(i*spacing))
+                y.append(radius2 + radius2*math.sin(i*spacing))
+
+        self.nodes = list(zip(x, y))
 
     def load_image(self, path):
         img = Image.open(path)
