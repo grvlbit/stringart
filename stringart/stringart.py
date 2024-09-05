@@ -9,6 +9,7 @@ Some more information will follow
 import math
 import copy
 import numpy as np
+from tqdm import tqdm
 
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 
@@ -35,10 +36,12 @@ class StringArtGenerator:
     def set_shape(self, shape):
         self.shape = shape
 
-    def set_nails(self, nails):
+    def set_nails(self, nails, dx=1):
         self.nails = nails
         if self.shape == 'circle':
             self.set_nodes_circle()
+        elif self.shape == 'two_circles':
+            self.set_nodes_two_circles(dx)
         elif self.shape == 'rectangle':
             self.set_nodes_rectangle()
 
@@ -88,6 +91,27 @@ class StringArtGenerator:
     def get_radius(self):
         return 0.5*np.amax(np.shape(self.data))
 
+    def set_nodes_two_circles(self, dx):
+        """Set's nails evenly along two circles of given diameter"""
+        spacing = (2*math.pi)/self.nails
+
+        steps = range(self.nails)
+
+        radius1 = self.get_radius() + dx
+        radius2 = self.get_radius() - dx
+
+        x = []
+        y = []
+        for i in steps:
+            if i % 2 == 0:
+                x.append(radius1 + radius1*math.cos(i*spacing))
+                y.append(radius1 + radius1*math.sin(i*spacing))
+            else:
+                x.append(radius2 + radius2*math.cos(i*spacing))
+                y.append(radius2 + radius2*math.sin(i*spacing))
+
+        self.nodes = list(zip(x, y))
+
     def load_image(self, path):
         img = Image.open(path)
         self.image = img
@@ -104,17 +128,18 @@ class StringArtGenerator:
         self.data = np.flipud(np_img).transpose()
 
     def generate(self):
-        self.calculate_paths()
+        # self.calculate_paths()
         delta = 0.0
         pattern = []
         nail = self.seed
         datacopy = copy.deepcopy(self.data)
-        for i in range(self.iterations):
+        for i in tqdm(range(self.iterations), total=self.iterations, desc='Generating pattern'):
             # calculate straight line to all other nodes and calculate
             # 'darkness' from start node
 
             # choose max darkness path
-            darkest_nail, darkest_path = self.choose_darkest_path(nail)
+            # darkest_nail, darkest_path = self.choose_darkest_path(nail)
+            darkest_nail, darkest_path = self.find_darkest_path(nail)
 
             # add chosen node to pattern
             pattern.append(self.nodes[darkest_nail])
@@ -138,27 +163,47 @@ class StringArtGenerator:
 
         return pattern
 
-    def choose_darkest_path(self, nail):
+    def calculate_darkness(self, path):
+        rows = [i[0] for i in path]
+        cols = [i[1] for i in path]
+        darkness = float(np.sum(self.data[rows, cols]))
+        return darkness
+
+    def find_darkest_path(self, nail_in):
+        start = self.nodes[nail_in]
         max_darkness = -1.0
-        for index, rowcol in enumerate(self.paths[nail]):
-            rows = [i[0] for i in rowcol]
-            cols = [i[1] for i in rowcol]
-            darkness = float(np.sum(self.data[rows, cols]))
-
+        for index, end in enumerate(self.nodes):
+            path = self.bresenham_path(start, end)
+            darkness = self.calculate_darkness(path)
             if darkness > max_darkness:
-                darkest_path = np.zeros(np.shape(self.data))
-                darkest_path[rows,cols] = 1.0
                 darkest_nail = index
+                darkest_path = np.zeros(np.shape(self.data))
+                rows = [i[0] for i in path]
+                cols = [i[1] for i in path]
+                darkest_path[rows, cols] = 1.0
                 max_darkness = darkness
-
         return darkest_nail, darkest_path
 
-    def calculate_paths(self):
-        for nail, anode in enumerate(self.nodes):
-            self.paths.append([])
-            for node in self.nodes:
-                path = self.bresenham_path(anode, node)
-                self.paths[nail].append(path)
+    # def choose_darkest_path(self, nail):
+    #     max_darkness = -1.0
+    #     for index, rowcol in enumerate(self.paths[nail]):
+    #         rows = [i[0] for i in rowcol]
+    #         cols = [i[1] for i in rowcol]
+    #         darkness = float(np.sum(self.data[rows, cols]))
+
+    #         if darkness > max_darkness:
+    #             darkest_path = np.zeros(np.shape(self.data))
+    #             darkest_path[rows,cols] = 1.0
+    #             darkest_nail = index
+    #             max_darkness = darkness
+    #     return darkest_nail, darkest_path
+
+    # def calculate_paths(self):
+    #     for nail, anode in tqdm(enumerate(self.nodes), total=len(self.nodes), desc='Calculate paths'):
+    #         self.paths.append([])
+    #         for node in self.nodes:
+    #             path = self.bresenham_path(anode, node)
+    #             self.paths[nail].append(path)
 
     def bresenham_path(self, start, end):
         """Bresenham's Line Algorithm
